@@ -384,7 +384,7 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
       <h4>PIN Sheet Cell</h4>
       <div class="settings-row">
         <label>Sheet PIN Cell</label>
-        <input class="settings-input" id="pin-cell-input" placeholder="e.g. Sheet1!A1" value="Sheet1!B1"/>
+        <input class="settings-input" id="pin-cell-input" placeholder="e.g. Sheet1!A1" value="Config!A1"/>
       </div>
       <div class="settings-hint">Put your PIN in that cell in the Google Sheet. The app fetches it on every owner login — no one can find it by inspecting the app.</div>
     </div>
@@ -396,7 +396,7 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
     var action = e.parameter.action;
 
     if (action === 'getPin') {
-      var cell = e.parameter.cell || 'Sheet1!B1';
+      var cell = e.parameter.cell || 'Config!A1';
       var val = ss.getRange(cell).getValue();
       return out({pin: String(val)});
     }
@@ -519,7 +519,7 @@ const visits = load('ps_visits',[]);
 const itemSales = load('ps_item_sales',[]);
 let syncQueue = load('ps_sync_queue',[]);
 let scriptUrl = localStorage.getItem('ps_script_url')||'https://script.google.com/macros/s/AKfycbwr-wHlnYwliiKp3ZvpP2WC03n8YLrKO-TfmPthfVt80sQla3oLiEeDYOMpyhuBwVk5/exec';
-let pinCell = localStorage.getItem('ps_pin_cell')||'Sheet1!B1';
+let pinCell = localStorage.getItem('ps_pin_cell')||'Config!A1';
 
 // Default items
 const DEFAULT_ITEMS = [
@@ -691,7 +691,7 @@ document.getElementById('settings-btn').onclick=()=>{
 document.getElementById('settings-cancel').onclick=()=>document.getElementById('settings-modal').style.display='none';
 document.getElementById('settings-save').onclick=()=>{
   scriptUrl=document.getElementById('script-url-input').value.trim();
-  pinCell=document.getElementById('pin-cell-input').value.trim()||'Sheet1!B1';
+  pinCell=document.getElementById('pin-cell-input').value.trim()||'Config!A1';
   localStorage.setItem('ps_script_url',scriptUrl);
   localStorage.setItem('ps_pin_cell',pinCell);
   document.getElementById('settings-modal').style.display='none';
