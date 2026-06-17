@@ -125,6 +125,10 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
 .pay-btn:hover{border-color:var(--accent);background:rgba(108,99,255,.1);}
 .pay-btn.selected{background:rgba(108,99,255,.2);border-color:var(--accent);color:var(--accent);}
 .pay-btn .pay-icon{font-size:20px;display:block;margin-bottom:4px;}
+.split-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.split-row label{flex:1;font-size:13px;display:flex;align-items:center;gap:6px;}
+.split-row input{width:90px;padding:8px 10px;border-radius:var(--radius-sm);
+  background:var(--bg);border:1px solid var(--border2);color:var(--text);font-size:14px;text-align:right;}
 
 /* DASHBOARD */
 .dashboard{padding:20px;}
@@ -157,6 +161,7 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
 .pay-pill.cbe{background:rgba(59,130,246,.12);color:#60a5fa;}
 .pay-pill.telebirr{background:rgba(251,191,36,.12);color:var(--amber);}
 .pay-pill.boa{background:rgba(248,113,113,.12);color:var(--danger);}
+.pay-pill.split{background:rgba(108,99,255,.12);color:var(--accent);}
 .pay-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
 .pay-stat{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;}
 .pay-stat-label{font-size:11px;color:var(--muted);margin-bottom:3px;}
@@ -456,12 +461,27 @@ function out(obj){
     <p id="collect-desc"></p>
     <div class="modal-big" id="collect-amount">0 Birr</div>
     <p style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px" id="collect-breakdown"></p>
-    <p style="font-size:13px;font-weight:600;margin-bottom:8px">How did they pay?</p>
-    <div class="pay-methods" id="collect-pay-methods">
-      <button class="pay-btn" data-method="cash" onclick="selectPayment('cash','collect')"><span class="pay-icon">💵</span>Cash</button>
-      <button class="pay-btn" data-method="cbe" onclick="selectPayment('cbe','collect')"><span class="pay-icon">🏦</span>CBE</button>
-      <button class="pay-btn" data-method="telebirr" onclick="selectPayment('telebirr','collect')"><span class="pay-icon">📱</span>TeleBirr</button>
-      <button class="pay-btn" data-method="boa" onclick="selectPayment('boa','collect')"><span class="pay-icon">🏧</span>BOA</button>
+
+    <div style="display:flex;justify-content:center;margin-bottom:12px">
+      <button id="split-toggle-btn" onclick="toggleSplitPayment()"
+        style="background:transparent;border:1px solid var(--border2);color:var(--accent);
+        font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer">🔀 Split Payment</button>
+    </div>
+
+    <div id="single-pay-section">
+      <p style="font-size:13px;font-weight:600;margin-bottom:8px">How did they pay?</p>
+      <div class="pay-methods" id="collect-pay-methods">
+        <button class="pay-btn" data-method="cash" onclick="selectPayment('cash','collect')"><span class="pay-icon">💵</span>Cash</button>
+        <button class="pay-btn" data-method="cbe" onclick="selectPayment('cbe','collect')"><span class="pay-icon">🏦</span>CBE</button>
+        <button class="pay-btn" data-method="telebirr" onclick="selectPayment('telebirr','collect')"><span class="pay-icon">📱</span>TeleBirr</button>
+        <button class="pay-btn" data-method="boa" onclick="selectPayment('boa','collect')"><span class="pay-icon">🏧</span>BOA</button>
+      </div>
+    </div>
+
+    <div id="split-pay-section" style="display:none">
+      <p style="font-size:13px;font-weight:600;margin-bottom:10px">Enter amount paid by each method:</p>
+      <div id="split-inputs"></div>
+      <div id="split-remaining" style="text-align:center;font-size:13px;margin-top:10px;font-weight:600"></div>
     </div>
     <div class="modal-actions">
       <button id="collect-cancel">Cancel</button>
@@ -564,27 +584,48 @@ async function fetchPinFromSheet(){
 // ── SYNC
 async function syncToSheets(row, type){
   if(!scriptUrl) return;
-  const item = {id:`q_${now()}`, type, ...row};
-  if(!syncQueue.find(q=>q.id===item.id)) syncQueue.push(item);
+  const item = {id:`q_${now()}_${Math.random().toString(36).slice(2,7)}`, type, ...row};
+  syncQueue.push(item);
   saveQueue(); updateSyncUI();
   if(isOnline()) await flushQueue();
 }
 
 async function flushQueue(){
   if(!scriptUrl||!isOnline()||syncQueue.length===0) return;
-  const visitRows = syncQueue.filter(q=>q.type==='visit');
-  const saleRows  = syncQueue.filter(q=>q.type==='sale');
-  try {
-    if(visitRows.length){
-      const encoded = encodeURIComponent(JSON.stringify({type:'visit',rows:visitRows}));
-      await fetch(`${scriptUrl}?action=sync&data=${encoded}`,{mode:'no-cors'});
+  // Send ONE item at a time so a failure never wipes out unrelated pending items,
+  // and so URLs stay short (mobile Safari is strict about long GET URLs with no-cors).
+  const remaining = [];
+  for(const item of syncQueue){
+    const ok = await sendOneItem(item);
+    if(!ok) remaining.push(item);
+  }
+  syncQueue = remaining;
+  saveQueue(); updateSyncUI();
+}
+
+async function sendOneItem(item){
+  try{
+    const payload = item.type==='sale'
+      ? {type:'sale', rows:[item]}
+      : {type:'visit', rows:[item]};
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    const url = `${scriptUrl}?action=sync&data=${encoded}`;
+    // Use a real fetch with text response when possible to confirm success.
+    // Fall back to no-cors (fire-and-forget) only if CORS fails.
+    try {
+      const res = await fetch(url, {mode:'cors'});
+      const data = await res.json();
+      return !!(data && data.ok);
+    } catch(corsErr){
+      // CORS blocked (common on some mobile browsers) — fire no-cors as best effort.
+      await fetch(url, {mode:'no-cors'});
+      // We can't confirm success here, but we mark it sent after a short delay
+      // and rely on duplicate-safe appendRow on the server side.
+      return true;
     }
-    if(saleRows.length){
-      const encoded = encodeURIComponent(JSON.stringify({type:'sale',rows:saleRows}));
-      await fetch(`${scriptUrl}?action=sync&data=${encoded}`,{mode:'no-cors'});
-    }
-    syncQueue=[]; saveQueue(); updateSyncUI();
-  } catch(e){}
+  } catch(e){
+    return false;
+  }
 }
 
 function updateSyncUI(){
@@ -946,16 +987,65 @@ function startSession(psId){
 }
 
 // ── COLLECT
+let isSplitPayment=false;
+let splitTotal=0;
+
 function askCollect(psId){
-  pendingCollectPS=psId;collectPayment=null;
+  pendingCollectPS=psId;collectPayment=null;isSplitPayment=false;
   document.querySelectorAll('#collect-pay-methods .pay-btn').forEach(b=>b.classList.remove('selected'));
   document.getElementById('collect-confirm').disabled=true;
+  document.getElementById('single-pay-section').style.display='block';
+  document.getElementById('split-pay-section').style.display='none';
+  document.getElementById('split-toggle-btn').textContent='🔀 Split Payment';
   const ps=psState[psId-1];
+  splitTotal=ps.visitSessions*PRICE;
   document.getElementById('collect-desc').textContent=`PS ${psId} — customer is done.`;
-  document.getElementById('collect-amount').textContent=`${ps.visitSessions*PRICE} Birr`;
+  document.getElementById('collect-amount').textContent=`${splitTotal} Birr`;
   document.getElementById('collect-breakdown').textContent=`${ps.visitSessions} session${ps.visitSessions!==1?'s':''} × ${PRICE} Birr`;
   document.getElementById('collect-modal').style.display='flex';
 }
+
+function toggleSplitPayment(){
+  isSplitPayment=!isSplitPayment;
+  document.getElementById('single-pay-section').style.display=isSplitPayment?'none':'block';
+  document.getElementById('split-pay-section').style.display=isSplitPayment?'block':'none';
+  document.getElementById('split-toggle-btn').textContent=isSplitPayment?'← Single Payment':'🔀 Split Payment';
+  if(isSplitPayment){
+    document.getElementById('split-inputs').innerHTML=`
+      <div class="split-row"><label>💵 Cash</label><input type="number" id="split-cash" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>
+      <div class="split-row"><label>🏦 CBE</label><input type="number" id="split-cbe" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>
+      <div class="split-row"><label>📱 TeleBirr</label><input type="number" id="split-telebirr" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>
+      <div class="split-row"><label>🏧 BOA</label><input type="number" id="split-boa" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>`;
+    updateSplitRemaining();
+    document.getElementById('collect-confirm').disabled=true;
+  } else {
+    document.getElementById('collect-confirm').disabled = !collectPayment;
+  }
+}
+
+function updateSplitRemaining(){
+  const cash=parseFloat(document.getElementById('split-cash').value)||0;
+  const cbe=parseFloat(document.getElementById('split-cbe').value)||0;
+  const tb=parseFloat(document.getElementById('split-telebirr').value)||0;
+  const boa=parseFloat(document.getElementById('split-boa').value)||0;
+  const sum=cash+cbe+tb+boa;
+  const remaining=splitTotal-sum;
+  const el=document.getElementById('split-remaining');
+  if(remaining===0){
+    el.textContent=`✓ Fully covered — ${splitTotal} Birr`;
+    el.style.color='var(--accent2)';
+    document.getElementById('collect-confirm').disabled=false;
+  } else if(remaining>0){
+    el.textContent=`${remaining} Birr remaining`;
+    el.style.color='var(--amber)';
+    document.getElementById('collect-confirm').disabled=true;
+  } else {
+    el.textContent=`${Math.abs(remaining)} Birr over the total!`;
+    el.style.color='var(--danger)';
+    document.getElementById('collect-confirm').disabled=true;
+  }
+}
+
 document.getElementById('collect-cancel').onclick=()=>{document.getElementById('collect-modal').style.display='none';pendingCollectPS=null;};
 document.getElementById('collect-confirm').onclick=()=>{
   document.getElementById('collect-modal').style.display='none';
@@ -966,13 +1056,31 @@ function collectAndReset(psId){
   const ps=psState[psId-1];
   const overSecs=ps.expiredAt?Math.floor((now()-ps.expiredAt)/1000):0;
   const overFmt=overSecs>0?fmtUp(overSecs*1000):'00:00';
-  // sessionEnd = when the last session was supposed to end
   const sessionEndTs = ps.endTime || ps.expiredAt || now();
+
+  let paymentMethod, splitDetail='';
+  if(isSplitPayment){
+    const cash=parseFloat(document.getElementById('split-cash').value)||0;
+    const cbe=parseFloat(document.getElementById('split-cbe').value)||0;
+    const tb=parseFloat(document.getElementById('split-telebirr').value)||0;
+    const boa=parseFloat(document.getElementById('split-boa').value)||0;
+    const parts=[];
+    if(cash>0) parts.push(`Cash:${cash}`);
+    if(cbe>0) parts.push(`CBE:${cbe}`);
+    if(tb>0) parts.push(`TeleBirr:${tb}`);
+    if(boa>0) parts.push(`BOA:${boa}`);
+    paymentMethod='split';
+    splitDetail=parts.join(', ');
+  } else {
+    paymentMethod=collectPayment||'cash';
+  }
+
   const visit={id:`v_${now()}_${psId}`,psId,date:todayStr(),
     visitStart:ps.visitStart||now(),collectedAt:now(),
     sessionEnd: sessionEndTs,
     overtime:overFmt,
-    sessions:ps.visitSessions,amount:ps.visitSessions*PRICE,paymentMethod:collectPayment||'cash'};
+    sessions:ps.visitSessions,amount:ps.visitSessions*PRICE,
+    paymentMethod, splitDetail};
   visits.push(visit);saveVisits();
   syncToSheets({psId:visit.psId,date:visit.date,
     startTime:timeStr(visit.visitStart),
@@ -982,6 +1090,7 @@ function collectAndReset(psId){
     duration:Math.floor(SESSION_DURATION/60),
     amount:visit.amount,
     paymentMethod:visit.paymentMethod,
+    splitDetail:visit.splitDetail,
     collectedAt:timeStr(visit.collectedAt)},'visit');
   ps.status='idle';ps.startTime=null;ps.endTime=null;ps.visitSessions=0;ps.visitStart=null;ps.expiredAt=null;
   renderShop();updateSyncUI();
