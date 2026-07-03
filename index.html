@@ -10,232 +10,12 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236c63ff'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <title>PS House Tracker</title>
-<style>
-:root{
-  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c26;
-  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
-  --text:#f0f0f5;--muted:#8888aa;--accent:#6c63ff;--accent2:#4ade80;
-  --danger:#f87171;--amber:#fbbf24;
-  --font:'Segoe UI',system-ui,sans-serif;--radius:14px;--radius-sm:8px;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
-.app{display:none;}.app.active{display:block;}
-
-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;
-  background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
-nav .logo{font-size:18px;font-weight:700;letter-spacing:-0.5px;}
-nav .logo span{color:var(--accent);}
-nav .nav-actions{display:flex;gap:8px;align-items:center;}
-.nav-btn{padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);
-  background:transparent;color:var(--text);font-size:13px;cursor:pointer;transition:background .15s;}
-.nav-btn:hover{background:var(--surface2);}
-.nav-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-
-.shop-header{padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between;}
-.shop-header h2{font-size:15px;color:var(--muted);font-weight:500;}
-.day-total{font-size:15px;font-weight:600;color:var(--accent2);}
-
-.sync-indicator{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
-.sync-dot-sm{width:7px;height:7px;border-radius:50%;background:var(--amber);}
-.sync-dot-sm.online{background:var(--accent2);}
-.sync-dot-sm.pending{background:var(--amber);animation:blink 1s infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
-
-/* PS CARDS */
-.ps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;padding:8px 20px 0;}
-.ps-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:18px;position:relative;overflow:hidden;transition:border-color .2s;}
-.ps-card.idle{border-color:var(--border);}
-.ps-card.active{border-color:#4ade80;background:#0d2a1a;}
-.ps-card.expired{border-color:var(--danger);background:#2a0d0d;animation:pulse-red 1s ease-in-out infinite;}
-.ps-card.idle.has-visit{border-color:var(--amber);}
-@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,0);}50%{box-shadow:0 0 0 6px rgba(248,113,113,.15);}}
-.expired-banner{position:absolute;top:0;left:0;right:0;background:rgba(248,113,113,.12);
-  text-align:center;padding:8px;font-size:13px;font-weight:700;color:var(--danger);}
-.ps-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.ps-name{font-size:20px;font-weight:700;letter-spacing:-0.5px;}
-.ps-status{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:4px 10px;border-radius:20px;}
-.ps-status.idle{background:rgba(255,255,255,.07);color:var(--muted);}
-.ps-status.active{background:rgba(74,222,128,.15);color:#4ade80;}
-.ps-status.expired{background:rgba(248,113,113,.15);color:var(--danger);}
-.visit-strip{display:flex;align-items:center;justify-content:space-between;
-  background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);
-  border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:12px;}
-.visit-strip-label{font-size:12px;color:var(--amber);font-weight:600;}
-.visit-strip-count{font-size:22px;font-weight:800;color:var(--amber);letter-spacing:-1px;}
-.visit-strip-amount{font-size:14px;font-weight:700;color:#4ade80;}
-.ps-timer{font-size:52px;font-weight:800;letter-spacing:-2px;text-align:center;
-  margin:8px 0;font-variant-numeric:tabular-nums;line-height:1;}
-.ps-timer.idle{color:rgba(255,255,255,.15);}
-.ps-timer.active{color:#4ade80;}
-.ps-timer.expired{color:var(--danger);}
-.overtime-row{display:flex;align-items:center;justify-content:center;gap:8px;
-  margin-top:4px;margin-bottom:6px;}
-.overtime-label{font-size:11px;color:var(--danger);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
-.overtime-timer{font-size:20px;font-weight:800;color:var(--danger);font-variant-numeric:tabular-nums;letter-spacing:-0.5px;}
-.time-range{display:flex;align-items:center;justify-content:center;gap:6px;
-  font-size:11px;color:var(--muted);margin-bottom:8px;}
-.ps-progress{width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin:8px 0 14px;overflow:hidden;}
-.ps-progress-bar{height:100%;border-radius:2px;background:var(--accent2);transition:width 1s linear,background .3s;}
-.ps-progress-bar.warning{background:var(--amber);}
-.ps-progress-bar.danger{background:var(--danger);}
-.ps-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:12px;}
-.ps-actions{display:flex;gap:8px;flex-wrap:wrap;}
-.btn-start{flex:1;padding:11px;border-radius:var(--radius-sm);background:var(--accent);border:none;
-  color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;min-width:120px;}
-.btn-start:hover{background:#5a52dd;}.btn-start:active{transform:scale(.98);}
-.btn-collect{flex:1;padding:11px;border-radius:var(--radius-sm);background:rgba(74,222,128,.15);
-  border:1px solid rgba(74,222,128,.4);color:#4ade80;font-size:14px;font-weight:600;cursor:pointer;
-  transition:background .15s;min-width:120px;}
-.btn-collect:hover{background:rgba(74,222,128,.25);}
-.btn-stop{padding:11px 14px;border-radius:var(--radius-sm);background:transparent;
-  border:1px solid var(--border2);color:var(--danger);font-size:13px;cursor:pointer;transition:background .15s;}
-.btn-stop:hover{background:rgba(248,113,113,.08);}
-
-/* SHOP ITEMS SECTION */
-.items-section{padding:20px 20px 30px;}
-.items-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.items-section-title{font-size:16px;font-weight:700;}
-.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
-.item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:14px;text-align:center;cursor:pointer;transition:all .15s;position:relative;}
-.item-card:hover{border-color:var(--accent);background:rgba(108,99,255,.08);}
-.item-card:active{transform:scale(.97);}
-.item-emoji{font-size:28px;margin-bottom:6px;}
-.item-name{font-size:13px;font-weight:600;margin-bottom:3px;}
-.item-price{font-size:15px;font-weight:800;color:var(--accent2);}
-
-/* ITEM SALE MODAL CART */
-.item-qty-row{display:flex;align-items:center;justify-content:space-between;
-  background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;}
-.item-qty-name{font-size:14px;font-weight:600;}
-.item-qty-controls{display:flex;align-items:center;gap:10px;}
-.qty-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:transparent;
-  color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.qty-btn:hover{background:var(--surface);}
-.qty-num{font-size:16px;font-weight:700;min-width:20px;text-align:center;}
-.item-qty-price{font-size:13px;color:var(--accent2);font-weight:600;}
-
-/* PAYMENT BUTTONS */
-.pay-methods{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 16px;}
-.pay-btn{padding:12px 8px;border-radius:var(--radius-sm);border:1px solid var(--border2);
-  background:var(--surface2);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;
-  transition:all .15s;text-align:center;}
-.pay-btn:hover{border-color:var(--accent);background:rgba(108,99,255,.1);}
-.pay-btn.selected{background:rgba(108,99,255,.2);border-color:var(--accent);color:var(--accent);}
-.pay-btn .pay-icon{font-size:20px;display:block;margin-bottom:4px;}
-.split-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.split-row label{flex:1;font-size:13px;display:flex;align-items:center;gap:6px;}
-.split-row input{width:90px;padding:8px 10px;border-radius:var(--radius-sm);
-  background:var(--bg);border:1px solid var(--border2);color:var(--text);font-size:14px;text-align:right;}
-
-/* DASHBOARD */
-.dashboard{padding:20px;}
-.dash-title{font-size:22px;font-weight:700;margin-bottom:4px;}
-.dash-sub{font-size:14px;color:var(--muted);margin-bottom:20px;}
-.dash-tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;}
-.dash-tab{padding:7px 16px;border-radius:var(--radius-sm);border:none;background:transparent;
-  color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;}
-.dash-tab.active{background:var(--accent);color:#fff;}
-.tab-panel{display:none;}.tab-panel.active{display:block;}
-.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
-.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
-.metric-label{font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
-.metric-value{font-size:28px;font-weight:800;letter-spacing:-1px;}
-.metric-value.green{color:#4ade80;}.metric-value.amber{color:var(--amber);}.metric-value.purple{color:var(--accent);}
-.section-title{font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
-.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
-.filter-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:transparent;
-  color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;}
-.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
-.data-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
-.table-row{display:grid;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);font-size:12px;}
-.table-row:last-child{border-bottom:none;}
-.table-row.header{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);}
-.ps-badge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
-  border-radius:8px;background:rgba(108,99,255,.15);color:var(--accent);font-weight:700;font-size:13px;}
-.amount-cell{color:#4ade80;font-weight:600;}
-.pay-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
-.pay-pill.cash{background:rgba(74,222,128,.12);color:#4ade80;}
-.pay-pill.cbe{background:rgba(59,130,246,.12);color:#60a5fa;}
-.pay-pill.telebirr{background:rgba(251,191,36,.12);color:var(--amber);}
-.pay-pill.boa{background:rgba(248,113,113,.12);color:var(--danger);}
-.pay-pill.split{background:rgba(108,99,255,.12);color:var(--accent);}
-.pay-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
-.pay-stat{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;}
-.pay-stat-label{font-size:11px;color:var(--muted);margin-bottom:3px;}
-.pay-stat-val{font-size:16px;font-weight:700;}
-.ps-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:13px;}
-.ps-bar-label{width:40px;color:var(--muted);}
-.ps-bar-track{flex:1;height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;}
-.ps-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s;}
-.ps-bar-val{width:50px;text-align:right;font-weight:600;color:#4ade80;}
-.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;}
-.sync-bar{margin-top:8px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius);display:flex;align-items:center;justify-content:space-between;font-size:13px;}
-.sync-status{display:flex;align-items:center;gap:8px;}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);}
-.sync-dot.synced{background:#4ade80;}
-
-/* ITEMS MANAGEMENT */
-.item-manage-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);}
-.item-manage-row:last-child{border-bottom:none;}
-.item-manage-emoji{font-size:24px;width:36px;text-align:center;}
-.item-manage-name{flex:1;font-size:14px;font-weight:600;}
-.item-price-input{width:90px;padding:7px 10px;border-radius:var(--radius-sm);background:var(--bg);
-  border:1px solid var(--border2);color:var(--text);font-size:14px;text-align:center;}
-.item-del-btn{padding:6px 10px;border-radius:var(--radius-sm);border:1px solid rgba(248,113,113,.3);
-  background:transparent;color:var(--danger);font-size:12px;cursor:pointer;}
-.add-item-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
-.add-item-input{flex:1;padding:8px 10px;border-radius:var(--radius-sm);background:var(--bg);
-  border:1px solid var(--border2);color:var(--text);font-size:13px;min-width:80px;}
-
-/* MODALS */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;
-  align-items:center;justify-content:center;z-index:200;padding:20px;}
-.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
-  padding:24px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;}
-.modal h3{font-size:18px;font-weight:700;margin-bottom:6px;}
-.modal p{font-size:14px;color:var(--muted);margin-bottom:14px;}
-.modal-big{font-size:36px;font-weight:800;color:#4ade80;text-align:center;margin:8px 0;letter-spacing:-1px;}
-.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
-.modal-actions button{padding:9px 20px;border-radius:var(--radius-sm);border:1px solid var(--border2);
-  background:transparent;color:var(--text);font-size:14px;cursor:pointer;}
-.modal-actions .confirm{background:var(--accent);border-color:var(--accent);color:#fff;}
-.modal-actions .confirm.green{background:#16a34a;border-color:#16a34a;}
-.modal-actions .confirm:disabled{opacity:.4;cursor:not-allowed;}
-
-/* LOCK */
-#lock-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-.lock-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
-  padding:32px 28px;width:100%;max-width:340px;text-align:center;}
-.lock-icon{font-size:40px;margin-bottom:16px;}
-.lock-card h2{font-size:22px;font-weight:800;margin-bottom:6px;}
-.lock-card p{font-size:14px;color:var(--muted);margin-bottom:24px;}
-.lock-input{width:100%;padding:12px 14px;border-radius:var(--radius-sm);background:var(--bg);
-  border:1px solid var(--border2);color:var(--text);font-size:16px;margin-bottom:12px;
-  text-align:center;letter-spacing:4px;}
-.lock-btn{width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--accent);
-  border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;}
-.lock-btn.secondary{background:var(--surface2);border:1px solid var(--border2);color:var(--text);}
-.lock-error{color:var(--danger);font-size:13px;margin-top:8px;display:none;}
-.lock-info{font-size:12px;color:var(--muted);margin-top:10px;}
-
-/* SETTINGS */
-.settings-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;}
-.settings-section h4{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
-.settings-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.settings-row label{font-size:13px;color:var(--muted);min-width:100px;}
-.settings-input{flex:1;padding:8px 10px;border-radius:var(--radius-sm);background:var(--bg);border:1px solid var(--border2);color:var(--text);font-size:13px;}
-.settings-hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;}
-.code-block{background:var(--surface2);font-size:11px;font-family:monospace;color:#a3e635;
-  padding:14px;white-space:pre-wrap;word-break:break-all;max-height:160px;overflow-y:auto;border-radius:var(--radius-sm);}
-</style>
+<!-- Styles live in styles.css -->
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- LOCK -->
+<!-- ============================================================= LOCK ==== -->
 <div id="lock-screen">
   <div class="lock-card">
     <div class="lock-icon">🎮</div>
@@ -250,7 +30,7 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
   </div>
 </div>
 
-<!-- SHOP -->
+<!-- ============================================================= SHOP ==== -->
 <div class="app" id="shop-app">
   <nav>
     <div class="logo"><span>PS</span> House</div>
@@ -269,7 +49,7 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
   </div>
   <div class="ps-grid" id="ps-grid"></div>
 
-  <!-- SHOP ITEMS -->
+  <!-- Shop items (snacks & drinks) -->
   <div class="items-section">
     <div class="items-section-header">
       <div class="items-section-title">🛒 Snacks & Drinks</div>
@@ -278,19 +58,21 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
   </div>
 </div>
 
-<!-- DASHBOARD -->
+<!-- ======================================================== DASHBOARD ==== -->
 <div class="app" id="dash-app">
   <nav>
     <div class="logo"><span>PS</span> House — Owner</div>
     <div class="nav-actions">
       <button class="nav-btn" id="back-shop-btn">← Shop</button>
+      <button class="nav-btn" id="refresh-btn">🔄 Refresh</button>
       <button class="nav-btn" id="settings-btn">⚙</button>
       <button class="nav-btn primary" id="export-btn">Export CSV</button>
     </div>
   </nav>
   <div class="dashboard">
     <div class="dash-title">Owner Dashboard</div>
-    <div class="dash-sub" id="dash-date"></div>
+    <div class="dash-sub" id="dash-date" style="margin-bottom:2px"></div>
+    <div class="dash-sub" id="dash-source" style="font-size:12px"></div>
 
     <div id="sync-alert" style="display:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);
       border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--amber);display:flex;align-items:center;gap:8px;">
@@ -307,7 +89,7 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
     <!-- PS TAB -->
     <div class="tab-panel active" id="tab-ps">
       <div class="metrics-grid" id="metrics-grid"></div>
-      <div class="section-title">Revenue by Payment (Today)</div>
+      <div class="section-title" id="pay-breakdown-title">Revenue by Payment (Today)</div>
       <div class="pay-breakdown" id="pay-breakdown"></div>
       <div class="section-title">Sessions per Console</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:24px" id="ps-bars"></div>
@@ -332,16 +114,15 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
           <div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Session Duration (minutes)</div>
             <div style="display:flex;align-items:center;gap:8px">
-              <input class="item-price-input" type="number" id="setting-duration" min="1" max="60"
-                value="${Math.floor(SESSION_DURATION/60)}" style="width:80px"/>
+              <!-- default shown until renderManageItems() fills in the live value -->
+              <input class="item-price-input" type="number" id="setting-duration" min="1" max="60" value="12" style="width:80px"/>
               <span style="font-size:13px;color:var(--muted)">min</span>
             </div>
           </div>
           <div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Price per Session (Birr)</div>
             <div style="display:flex;align-items:center;gap:8px">
-              <input class="item-price-input" type="number" id="setting-price" min="1"
-                value="${PRICE}" style="width:80px"/>
+              <input class="item-price-input" type="number" id="setting-price" min="1" value="20" style="width:80px"/>
               <span style="font-size:13px;color:var(--muted)">Birr</span>
             </div>
           </div>
@@ -372,7 +153,7 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
+<!-- =================================================== SETTINGS MODAL ==== -->
 <div class="modal-overlay" id="settings-modal" style="display:none">
   <div class="modal" style="max-width:480px">
     <h3>⚙ Settings</h3>
@@ -395,41 +176,78 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
     </div>
     <div class="settings-section">
       <h4>Apps Script Code</h4>
-      <div class="code-block">function doGet(e) {
+      <div class="settings-hint" style="margin-bottom:8px">Paste this into Apps Script and re-deploy. It writes to a named "Sessions" tab, stores a hidden UID per row (so repeated syncs can't duplicate), and adds a <b>getAll</b> action so the owner dashboard can show every device's data. Same code lives in <b>apps-script.gs</b> in the project.</div>
+      <div class="code-block">var SHEET_ID = '1bJXuhnfsXKMCxBKwf7wVBKzSRXiNPQdFPdn2_8lkDGk';
+var VISIT_HEADERS = ['Console','Date','Start Time','End Time','Sessions',
+  'Minutes','Amount','Payment','Split Detail','Overtime','Collected At','UID'];
+var SALE_HEADERS = ['Date','Time','Item','Qty','Amount','Payment','UID'];
+
+function doGet(e) {
   try {
-    var ss = SpreadsheetApp.openById('1bJXuhnfsXKMCxBKwf7wVBKzSRXiNPQdFPdn2_8lkDGk');
+    var ss = SpreadsheetApp.openById(SHEET_ID);
     var action = e.parameter.action;
 
     if (action === 'getPin') {
       var cell = e.parameter.cell || 'Config!A1';
-      var val = ss.getRange(cell).getValue();
-      return out({pin: String(val)});
+      return out({pin: String(ss.getRange(cell).getValue())});
+    }
+
+    if (action === 'getAll') {
+      return out({ok:true,
+        visits: readSheet(ss.getSheetByName('Sessions')),
+        sales:  readSheet(ss.getSheetByName('Sales'))});
     }
 
     if (action === 'sync') {
       var data = JSON.parse(decodeURIComponent(e.parameter.data));
       var type = data.type; // 'visit' or 'sale'
-      var sheet;
+      var sheet, headers;
       if (type === 'sale') {
         sheet = ss.getSheetByName('Sales') || ss.insertSheet('Sales');
-        if (sheet.getLastRow()===0)
-          sheet.appendRow(['Date','Time','Item','Qty','Amount','Payment']);
-        data.rows.forEach(function(r){
-          sheet.appendRow([r.date,r.time,r.item,r.qty,r.amount,r.payment]);
-        });
+        headers = SALE_HEADERS;
       } else {
-        sheet = ss.getActiveSheet();
-        if (sheet.getLastRow()===0)
-          sheet.appendRow(['Console','Date','Time','Sessions','Minutes','Amount','Payment','Collected At']);
-        data.rows.forEach(function(r){
-          sheet.appendRow(['PS '+r.psId,r.date,r.startTime,r.sessions,r.sessions*7,r.amount,r.paymentMethod,r.collectedAt]);
-        });
+        sheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
+        headers = VISIT_HEADERS;
       }
+      if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+
+      // Collect UIDs already stored (last column) so we never append a duplicate.
+      var uidCol = headers.length;
+      var seen = {};
+      if (sheet.getLastRow() > 1) {
+        var stored = sheet.getRange(2, uidCol, sheet.getLastRow() - 1, 1).getValues();
+        for (var i = 0; i < stored.length; i++) seen[String(stored[i][0])] = true;
+      }
+
+      data.rows.forEach(function (r) {
+        if (r.id && seen[r.id]) return; // already saved — skip duplicate
+        if (type === 'sale') {
+          sheet.appendRow([r.date, r.time, r.item, r.qty, r.amount, r.payment, r.id || '']);
+        } else {
+          sheet.appendRow(['PS ' + r.psId, r.date, r.startTime, r.endTime, r.sessions,
+                           r.sessions * (r.duration || 12), r.amount, r.paymentMethod,
+                           r.splitDetail || '', r.overtime || '', r.collectedAt, r.id || '']);
+        }
+        if (r.id) seen[r.id] = true;
+      });
       return out({ok:true});
     }
     return out({ok:false,error:'unknown action'});
   } catch(err) { return out({ok:false,error:err.toString()}); }
 }
+
+function readSheet(sheet) {
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var values = sheet.getDataRange().getDisplayValues();
+  var headers = values[0], rows = [];
+  for (var i = 1; i < values.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) obj[headers[j]] = values[i][j];
+    rows.push(obj);
+  }
+  return rows;
+}
+
 function out(obj){
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
@@ -442,7 +260,7 @@ function out(obj){
   </div>
 </div>
 
-<!-- START MODAL -->
+<!-- ====================================================== START MODAL ==== -->
 <div class="modal-overlay" id="start-modal" style="display:none">
   <div class="modal">
     <h3 id="start-modal-title">Start Session</h3>
@@ -454,7 +272,7 @@ function out(obj){
   </div>
 </div>
 
-<!-- COLLECT MODAL -->
+<!-- ==================================================== COLLECT MODAL ==== -->
 <div class="modal-overlay" id="collect-modal" style="display:none">
   <div class="modal">
     <h3>Collect Payment</h3>
@@ -490,7 +308,7 @@ function out(obj){
   </div>
 </div>
 
-<!-- ITEM SALE MODAL -->
+<!-- ================================================== ITEM SALE MODAL ==== -->
 <div class="modal-overlay" id="sale-modal" style="display:none">
   <div class="modal">
     <h3 id="sale-modal-title">Sell Item</h3>
@@ -511,7 +329,7 @@ function out(obj){
   </div>
 </div>
 
-<!-- STOP MODAL -->
+<!-- ======================================================= STOP MODAL ==== -->
 <div class="modal-overlay" id="stop-modal" style="display:none">
   <div class="modal">
     <h3>Stop Session Early?</h3>
@@ -523,761 +341,7 @@ function out(obj){
   </div>
 </div>
 
-<script>
-// ── CONFIG
-let SESSION_DURATION = parseInt(localStorage.getItem('ps_session_duration')) || 12 * 60;
-let PRICE = parseInt(localStorage.getItem('ps_price')) || 20;
-const NUM_PS = 5;
-const SHEET_ID = '1bJXuhnfsXKMCxBKwf7wVBKzSRXiNPQdFPdn2_8lkDGk';
-
-// ── STATE
-let pendingStartPS=null, pendingStopPS=null, pendingCollectPS=null;
-let collectPayment=null, salePayment=null;
-let currentSaleItem=null, saleQty=1;
-
-const visits = load('ps_visits',[]);
-const itemSales = load('ps_item_sales',[]);
-let syncQueue = load('ps_sync_queue',[]);
-let scriptUrl = localStorage.getItem('ps_script_url')||'https://script.google.com/macros/s/AKfycbwr-wHlnYwliiKp3ZvpP2WC03n8YLrKO-TfmPthfVt80sQla3oLiEeDYOMpyhuBwVk5/exec';
-let pinCell = localStorage.getItem('ps_pin_cell')||'Config!A1';
-
-// Default items
-const DEFAULT_ITEMS = [
-  {id:'qq',emoji:'🍫',name:'QQ',price:25},
-  {id:'sunchips',emoji:'🍟',name:'Sunchips',price:35},
-  {id:'softdrink',emoji:'🥤',name:'Soft Drink',price:50},
-];
-let shopItems = load('ps_shop_items', DEFAULT_ITEMS);
-
-const psState = Array.from({length:NUM_PS},(_,i)=>({
-  id:i+1,status:'idle',startTime:null,endTime:null,visitSessions:0,visitStart:null,expiredAt:null
-}));
-
-function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}
-function saveVisits(){localStorage.setItem('ps_visits',JSON.stringify(visits));}
-function saveSales(){localStorage.setItem('ps_item_sales',JSON.stringify(itemSales));}
-function saveQueue(){localStorage.setItem('ps_sync_queue',JSON.stringify(syncQueue));}
-function saveItems(){localStorage.setItem('ps_shop_items',JSON.stringify(shopItems));}
-function now(){return Date.now();}
-function fmt(ms){const s=Math.max(0,Math.ceil(ms/1000));return`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
-function todayStr(){return new Date().toISOString().split('T')[0];}
-function timeStr(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});}
-function dateStr(ts){return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
-function getTodayVisits(){return visits.filter(v=>v.date===todayStr());}
-function getTodayRevenue(){return getTodayVisits().reduce((s,v)=>s+v.amount,0);}
-function isOnline(){return navigator.onLine;}
-
-// ── PIN FETCH FROM SHEET
-async function fetchPinFromSheet(){
-  if(!scriptUrl) return null;
-  try {
-    const url = `${scriptUrl}?action=getPin&cell=${encodeURIComponent(pinCell)}`;
-    const res = await fetch(url, {mode:'cors'});
-    const data = await res.json();
-    return data.pin ? String(data.pin).trim() : null;
-  } catch(e){
-    // fallback no-cors — can't read response but we try
-    return null;
-  }
-}
-
-// ── SYNC
-async function syncToSheets(row, type){
-  if(!scriptUrl) return;
-  const item = {id:`q_${now()}_${Math.random().toString(36).slice(2,7)}`, type, ...row};
-  syncQueue.push(item);
-  saveQueue(); updateSyncUI();
-  if(isOnline()) await flushQueue();
-}
-
-async function flushQueue(){
-  if(!scriptUrl||!isOnline()||syncQueue.length===0) return;
-  // Send ONE item at a time so a failure never wipes out unrelated pending items,
-  // and so URLs stay short (mobile Safari is strict about long GET URLs with no-cors).
-  const remaining = [];
-  for(const item of syncQueue){
-    const ok = await sendOneItem(item);
-    if(!ok) remaining.push(item);
-  }
-  syncQueue = remaining;
-  saveQueue(); updateSyncUI();
-}
-
-async function sendOneItem(item){
-  try{
-    const payload = item.type==='sale'
-      ? {type:'sale', rows:[item]}
-      : {type:'visit', rows:[item]};
-    const encoded = encodeURIComponent(JSON.stringify(payload));
-    const url = `${scriptUrl}?action=sync&data=${encoded}`;
-    // Use a real fetch with text response when possible to confirm success.
-    // Fall back to no-cors (fire-and-forget) only if CORS fails.
-    try {
-      const res = await fetch(url, {mode:'cors'});
-      const data = await res.json();
-      return !!(data && data.ok);
-    } catch(corsErr){
-      // CORS blocked (common on some mobile browsers) — fire no-cors as best effort.
-      await fetch(url, {mode:'no-cors'});
-      // We can't confirm success here, but we mark it sent after a short delay
-      // and rely on duplicate-safe appendRow on the server side.
-      return true;
-    }
-  } catch(e){
-    return false;
-  }
-}
-
-function updateSyncUI(){
-  const dot=document.getElementById('online-dot');
-  const lbl=document.getElementById('online-label');
-  if(dot){
-    if(syncQueue.length>0){dot.className='sync-dot-sm pending';if(lbl)lbl.textContent=`${syncQueue.length} pending`;}
-    else if(isOnline()){dot.className='sync-dot-sm online';if(lbl)lbl.textContent='Online';}
-    else{dot.className='sync-dot-sm';if(lbl)lbl.textContent='Offline';}
-  }
-  const al=document.getElementById('sync-alert');
-  if(al){
-    if(syncQueue.length>0){
-      al.style.display='flex';
-      document.getElementById('sync-alert-text').textContent=`${syncQueue.length} record${syncQueue.length>1?'s':''} waiting to sync.`;
-    } else { al.style.display='none'; }
-  }
-  const sd=document.getElementById('sync-dot'),sl=document.getElementById('sync-label');
-  if(sd){sd.className=syncQueue.length===0?'sync-dot synced':'sync-dot';}
-  if(sl)sl.textContent=syncQueue.length===0?`${visits.length} visits — all synced`:`${visits.length} visits — ${syncQueue.length} pending`;
-}
-
-window.addEventListener('online',()=>{updateSyncUI();flushQueue();});
-window.addEventListener('offline',()=>updateSyncUI());
-setInterval(()=>{if(isOnline()&&syncQueue.length>0)flushQueue();},30000);
-
-// ── LOCK / NAVIGATION
-document.getElementById('staff-btn').onclick=()=>showShop();
-
-document.getElementById('owner-login-btn').onclick=async()=>{
-  const pin=document.getElementById('pin-input').value.trim();
-  if(!pin){document.getElementById('pin-error').textContent='Enter your PIN.';document.getElementById('pin-error').style.display='block';return;}
-  if(!isOnline()){
-    document.getElementById('pin-error').textContent='No internet. Cannot verify PIN securely.';
-    document.getElementById('pin-error').style.display='block';return;
-  }
-  if(!scriptUrl){
-    document.getElementById('pin-error').textContent='Script URL not set. Open Settings first.';
-    document.getElementById('pin-error').style.display='block';
-    // let them in if no url is set yet (first time setup)
-    showDashboard(); return;
-  }
-  document.getElementById('lock-info').textContent='Verifying PIN…';
-  const serverPin=await fetchPinFromSheet();
-  if(serverPin===null){
-    document.getElementById('pin-error').textContent='Could not reach server. Check script URL.';
-    document.getElementById('pin-error').style.display='block';
-    document.getElementById('lock-info').textContent='PIN is verified securely online.';
-    return;
-  }
-  if(pin===serverPin){
-    document.getElementById('pin-error').style.display='none';
-    document.getElementById('pin-input').value='';
-    document.getElementById('lock-info').textContent='PIN is verified securely online.';
-    showDashboard();
-  } else {
-    document.getElementById('pin-error').textContent='Wrong PIN. Try again.';
-    document.getElementById('pin-error').style.display='block';
-    document.getElementById('pin-input').value='';
-    document.getElementById('lock-info').textContent='PIN is verified securely online.';
-  }
-};
-document.getElementById('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('owner-login-btn').click();});
-document.getElementById('go-dashboard-btn').onclick=async()=>{
-  const pin=prompt('Enter owner PIN:');
-  if(!pin) return;
-  if(!isOnline()){alert('No internet. Cannot verify PIN.');return;}
-  if(!scriptUrl){showDashboard();return;}
-  const serverPin=await fetchPinFromSheet();
-  if(pin===serverPin) showDashboard(); else if(pin!==null) alert('Wrong PIN');
-};
-document.getElementById('back-shop-btn').onclick=()=>showShop();
-
-function showShop(){
-  document.getElementById('lock-screen').style.display='none';
-  document.getElementById('shop-app').classList.add('active');
-  document.getElementById('dash-app').classList.remove('active');
-  renderShop(); renderItems(); startClock(); updateSyncUI();
-}
-function showDashboard(){
-  document.getElementById('lock-screen').style.display='none';
-  document.getElementById('shop-app').classList.remove('active');
-  document.getElementById('dash-app').classList.add('active');
-  renderDashboard(); updateSyncUI();
-}
-
-// ── TABS
-function showTab(id){
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.dash-tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  const idx={'tab-ps':0,'tab-items':1,'tab-manage':2}[id]??0;
-  document.querySelectorAll('.dash-tab')[idx]?.classList.add('active');
-  if(id==='tab-items') renderItemsDash();
-  if(id==='tab-manage') renderManageItems();
-}
-
-// ── SETTINGS
-document.getElementById('settings-btn').onclick=()=>{
-  document.getElementById('script-url-input').value=scriptUrl;
-  document.getElementById('pin-cell-input').value=pinCell;
-  document.getElementById('settings-modal').style.display='flex';
-};
-document.getElementById('settings-cancel').onclick=()=>document.getElementById('settings-modal').style.display='none';
-document.getElementById('settings-save').onclick=()=>{
-  scriptUrl=document.getElementById('script-url-input').value.trim();
-  pinCell=document.getElementById('pin-cell-input').value.trim()||'Config!A1';
-  localStorage.setItem('ps_script_url',scriptUrl);
-  localStorage.setItem('ps_pin_cell',pinCell);
-  document.getElementById('settings-modal').style.display='none';
-  if(scriptUrl&&syncQueue.length>0) flushQueue();
-  updateSyncUI();
-};
-document.getElementById('sync-now-btn').onclick=()=>flushQueue();
-
-// ── SHOP ITEMS RENDER
-function renderItems(){
-  const grid=document.getElementById('items-grid');
-  if(!grid) return;
-  grid.innerHTML=shopItems.map(item=>`
-    <div class="item-card" onclick="openSaleModal('${item.id}')">
-      <div class="item-emoji">${item.emoji}</div>
-      <div class="item-name">${item.name}</div>
-      <div class="item-price">${item.price} Birr</div>
-    </div>`).join('');
-}
-
-// ── SALE MODAL
-function openSaleModal(itemId){
-  currentSaleItem=shopItems.find(i=>i.id===itemId);
-  if(!currentSaleItem) return;
-  saleQty=1; salePayment=null;
-  document.getElementById('sale-modal-title').textContent=`${currentSaleItem.emoji} ${currentSaleItem.name}`;
-  document.querySelectorAll('#sale-pay-methods .pay-btn').forEach(b=>b.classList.remove('selected'));
-  document.getElementById('sale-confirm').disabled=true;
-  renderSaleCart();
-  document.getElementById('sale-modal').style.display='flex';
-}
-function renderSaleCart(){
-  if(!currentSaleItem) return;
-  document.getElementById('sale-cart').innerHTML=`
-    <div class="item-qty-row">
-      <div>
-        <div class="item-qty-name">${currentSaleItem.emoji} ${currentSaleItem.name}</div>
-        <div class="item-qty-price">${currentSaleItem.price} Birr each</div>
-      </div>
-      <div class="item-qty-controls">
-        <button class="qty-btn" onclick="changeQty(-1)">−</button>
-        <div class="qty-num" id="qty-display">${saleQty}</div>
-        <button class="qty-btn" onclick="changeQty(1)">+</button>
-      </div>
-    </div>`;
-  document.getElementById('sale-total').textContent=`${saleQty*currentSaleItem.price} Birr`;
-}
-function changeQty(d){
-  saleQty=Math.max(1,saleQty+d);
-  document.getElementById('qty-display').textContent=saleQty;
-  document.getElementById('sale-total').textContent=`${saleQty*currentSaleItem.price} Birr`;
-}
-document.getElementById('sale-cancel').onclick=()=>{document.getElementById('sale-modal').style.display='none';};
-document.getElementById('sale-confirm').onclick=()=>{
-  document.getElementById('sale-modal').style.display='none';
-  completeSale();
-};
-function completeSale(){
-  if(!currentSaleItem||!salePayment) return;
-  const sale={
-    id:`s_${now()}`,date:todayStr(),time:timeStr(now()),
-    itemId:currentSaleItem.id,item:currentSaleItem.name,
-    qty:saleQty,amount:saleQty*currentSaleItem.price,
-    payment:salePayment
-  };
-  itemSales.push(sale); saveSales();
-  syncToSheets({date:sale.date,time:sale.time,item:sale.item,qty:sale.qty,amount:sale.amount,payment:sale.payment},'sale');
-  updateSyncUI();
-}
-
-// ── PAYMENT SELECTION (shared for both collect + sale)
-function selectPayment(method,context){
-  const containerId=context==='collect'?'collect-pay-methods':'sale-pay-methods';
-  document.querySelectorAll(`#${containerId} .pay-btn`).forEach(b=>b.classList.toggle('selected',b.dataset.method===method));
-  if(context==='collect'){collectPayment=method;document.getElementById('collect-confirm').disabled=false;}
-  else{salePayment=method;document.getElementById('sale-confirm').disabled=false;}
-}
-
-// ── PS RENDER
-function renderShop(){
-  const grid=document.getElementById('ps-grid');
-  grid.innerHTML='';
-  psState.forEach(ps=>{
-    const card=document.createElement('div');
-    const hasVisit=ps.visitSessions>0;
-    card.className=`ps-card ${ps.status}${hasVisit&&ps.status==='idle'?' has-visit':''}`;
-    card.id=`ps-card-${ps.id}`;
-    const remaining=ps.status==='active'?ps.endTime-now():0;
-    const pct=ps.status==='active'?Math.max(0,remaining/(SESSION_DURATION*1000)*100):(ps.status==='idle'?100:0);
-    const barClass=pct<20?'danger':pct<40?'warning':'';
-    const timerText=ps.status==='active'?fmt(remaining):ps.status==='expired'?'00:00':`${Math.floor(SESSION_DURATION/60).toString().padStart(2,'0')}:00`;
-    const endTime = ps.endTime ? new Date(ps.endTime) : null;
-    const startTimeStr = ps.startTime ? timeStr(ps.startTime) : null;
-    const endTimeStr = endTime ? endTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true}) : null;
-    card.innerHTML=`
-      ${ps.status==='expired'?'<div class="expired-banner">⏰ TIME UP</div>':''}
-      <div class="ps-card-header" style="${ps.status==='expired'?'margin-top:34px':''}">
-        <div class="ps-name">PS ${ps.id}</div>
-        <div class="ps-status ${ps.status}">${ps.status==='idle'?'Available':ps.status==='active'?'Playing':'Time Up'}</div>
-      </div>
-      ${hasVisit?`<div class="visit-strip">
-        <div><div class="visit-strip-label">Current Customer</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${ps.visitSessions} session${ps.visitSessions!==1?'s':''}</div></div>
-        <div class="visit-strip-count">${ps.visitSessions}</div>
-        <div class="visit-strip-amount">${ps.visitSessions*PRICE} Birr</div>
-      </div>`:''}
-      <div class="ps-timer ${ps.status}" id="timer-${ps.id}">${timerText}</div>
-      ${ps.status==='expired'?`<div class="overtime-row"><span class="overtime-label">⚠ Overtime</span><span class="overtime-timer" id="overtime-${ps.id}">00:00</span></div>`:'<div style="height:30px"></div>'}
-      ${startTimeStr&&endTimeStr?`<div class="time-range">🕐 ${startTimeStr} → ${endTimeStr}</div>`:'<div style="height:18px"></div>'}
-      <div class="ps-progress"><div class="ps-progress-bar ${barClass}" id="bar-${ps.id}" style="width:${pct}%"></div></div>
-      <div class="ps-meta">
-        <span>${ps.startTime?'Started '+timeStr(ps.startTime):hasVisit?'Waiting':'No customer'}</span>
-        <span style="color:var(--accent2)">${getTodayVisits().filter(v=>v.psId===ps.id).length} visits today</span>
-      </div>
-      <div class="ps-actions" id="actions-${ps.id}">${buildActions(ps)}</div>`;
-    grid.appendChild(card);
-  });
-  updateDayTotal();
-}
-
-function buildActions(ps){
-  const h=ps.visitSessions>0;
-  if(ps.status==='active') return `
-    <button class="btn-start" style="background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:default;flex:1">Running…</button>
-    <button class="btn-stop" onclick="askStop(${ps.id})">■ Stop</button>`;
-  return `
-    <button class="btn-start" onclick="askStart(${ps.id})">${h?'▶ Next Session':'▶ Start Session — 20 Birr'}</button>
-    ${h?`<button class="btn-collect" onclick="askCollect(${ps.id})">✓ Collect ${ps.visitSessions*PRICE} Birr</button>`:''}`;
-}
-
-function updateDayTotal(){
-  const el=document.getElementById('day-total-display');
-  const snackToday=itemSales.filter(s=>s.date===todayStr()).reduce((a,s)=>a+s.amount,0);
-  if(el) el.textContent=`Today: ${getTodayRevenue()+snackToday} Birr`;
-}
-
-function startClock(){
-  clearInterval(window._clockInt);
-  window._clockInt=setInterval(()=>{
-    const d=new Date();
-    const cl=document.getElementById('live-clock');
-    if(cl) cl.textContent=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    tickTimers();
-  },1000);
-}
-
-function tickTimers(){
-  psState.forEach(ps=>{
-    // tick overtime for expired cards
-    if(ps.status==='expired'&&ps.expiredAt){
-      const overEl=document.getElementById(`overtime-${ps.id}`);
-      if(overEl) overEl.textContent=fmtUp(now()-ps.expiredAt);
-    }
-    if(ps.status!=='active') return;
-    const remaining=ps.endTime-now();
-    const timerEl=document.getElementById(`timer-${ps.id}`);
-    const barEl=document.getElementById(`bar-${ps.id}`);
-    if(!timerEl) return;
-    if(remaining<=0){
-      ps.status='expired';
-      ps.expiredAt=now();
-      timerEl.textContent='00:00';timerEl.className='ps-timer expired';
-      barEl.style.width='0%';barEl.className='ps-progress-bar danger';
-      const card=document.getElementById(`ps-card-${ps.id}`);
-      if(card){
-        card.className='ps-card expired';
-        if(!card.querySelector('.expired-banner')){
-          const b=document.createElement('div');b.className='expired-banner';b.textContent='⏰ TIME UP';
-          card.insertBefore(b,card.firstChild);
-          const hdr=card.querySelector('.ps-card-header');if(hdr)hdr.style.marginTop='34px';
-        }
-        card.querySelector('.ps-status').textContent='Time Up';
-        card.querySelector('.ps-status').className='ps-status expired';
-        document.getElementById(`actions-${ps.id}`).innerHTML=buildActions(ps);
-        updateVisitStrip(ps);
-        // inject overtime row if not present
-        if(!card.querySelector('.overtime-row')){
-          const spacer=card.querySelector('.ps-timer').nextSibling;
-          const ot=document.createElement('div');ot.className='overtime-row';
-          ot.innerHTML=`<span class="overtime-label">⚠ Overtime</span><span class="overtime-timer" id="overtime-${ps.id}">00:00</span>`;
-          card.querySelector('.ps-timer').insertAdjacentElement('afterend',ot);
-        }
-      }
-      playAlarm();
-    } else {
-      const pct=remaining/(SESSION_DURATION*1000)*100;
-      timerEl.textContent=fmt(remaining);
-      barEl.style.width=pct+'%';
-      barEl.className='ps-progress-bar'+(pct<20?' danger':pct<40?' warning':'');
-    }
-  });
-}
-
-function fmtUp(ms){
-  const s=Math.floor(ms/1000);
-  const m=Math.floor(s/60);
-  return`${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-}
-
-function updateVisitStrip(ps){
-  const card=document.getElementById(`ps-card-${ps.id}`);if(!card) return;
-  let strip=card.querySelector('.visit-strip');
-  if(ps.visitSessions>0&&!strip){
-    strip=document.createElement('div');strip.className='visit-strip';
-    card.insertBefore(strip,card.querySelector('.ps-timer'));
-  }
-  if(strip){
-    if(ps.visitSessions>0){
-      strip.innerHTML=`<div><div class="visit-strip-label">Current Customer</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${ps.visitSessions} session${ps.visitSessions!==1?'s':''}</div></div>
-        <div class="visit-strip-count">${ps.visitSessions}</div>
-        <div class="visit-strip-amount">${ps.visitSessions*PRICE} Birr</div>`;
-    } else { strip.remove(); }
-  }
-}
-
-function playAlarm(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [0,.3,.6].forEach(t=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);o.frequency.value=880;
-      g.gain.setValueAtTime(.3,ctx.currentTime+t);
-      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.25);
-      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.25);
-    });
-  }catch(e){}
-}
-
-// ── START SESSION
-function askStart(psId){
-  pendingStartPS=psId;
-  const ps=psState[psId-1],h=ps.visitSessions>0;
-  document.getElementById('start-modal-title').textContent=h?`PS ${psId} — Session ${ps.visitSessions+1}`:`Start PS ${psId}`;
-  document.getElementById('start-modal-body').textContent=h
-    ?`Add another ${Math.floor(SESSION_DURATION/60)}-min session? (${ps.visitSessions+1} sessions = ${(ps.visitSessions+1)*PRICE} Birr total)`
-    :`Start a ${Math.floor(SESSION_DURATION/60)}-minute session for PS ${psId}. Customer pays ${PRICE} Birr per session.`;
-  document.getElementById('start-modal').style.display='flex';
-}
-document.getElementById('start-cancel').onclick=()=>{document.getElementById('start-modal').style.display='none';pendingStartPS=null;};
-document.getElementById('start-confirm').onclick=()=>{
-  document.getElementById('start-modal').style.display='none';
-  if(pendingStartPS!==null) startSession(pendingStartPS);
-  pendingStartPS=null;
-};
-function startSession(psId){
-  const ps=psState[psId-1];
-  ps.status='active';ps.startTime=now();ps.endTime=now()+SESSION_DURATION*1000;
-  ps.expiredAt=null;
-  ps.visitSessions+=1;if(!ps.visitStart) ps.visitStart=ps.startTime;
-  renderShop();
-}
-
-// ── COLLECT
-let isSplitPayment=false;
-let splitTotal=0;
-
-function askCollect(psId){
-  pendingCollectPS=psId;collectPayment=null;isSplitPayment=false;
-  document.querySelectorAll('#collect-pay-methods .pay-btn').forEach(b=>b.classList.remove('selected'));
-  document.getElementById('collect-confirm').disabled=true;
-  document.getElementById('single-pay-section').style.display='block';
-  document.getElementById('split-pay-section').style.display='none';
-  document.getElementById('split-toggle-btn').textContent='🔀 Split Payment';
-  const ps=psState[psId-1];
-  splitTotal=ps.visitSessions*PRICE;
-  document.getElementById('collect-desc').textContent=`PS ${psId} — customer is done.`;
-  document.getElementById('collect-amount').textContent=`${splitTotal} Birr`;
-  document.getElementById('collect-breakdown').textContent=`${ps.visitSessions} session${ps.visitSessions!==1?'s':''} × ${PRICE} Birr`;
-  document.getElementById('collect-modal').style.display='flex';
-}
-
-function toggleSplitPayment(){
-  isSplitPayment=!isSplitPayment;
-  document.getElementById('single-pay-section').style.display=isSplitPayment?'none':'block';
-  document.getElementById('split-pay-section').style.display=isSplitPayment?'block':'none';
-  document.getElementById('split-toggle-btn').textContent=isSplitPayment?'← Single Payment':'🔀 Split Payment';
-  if(isSplitPayment){
-    document.getElementById('split-inputs').innerHTML=`
-      <div class="split-row"><label>💵 Cash</label><input type="number" id="split-cash" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>
-      <div class="split-row"><label>🏦 CBE</label><input type="number" id="split-cbe" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>
-      <div class="split-row"><label>📱 TeleBirr</label><input type="number" id="split-telebirr" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>
-      <div class="split-row"><label>🏧 BOA</label><input type="number" id="split-boa" min="0" oninput="updateSplitRemaining()" placeholder="0"/></div>`;
-    updateSplitRemaining();
-    document.getElementById('collect-confirm').disabled=true;
-  } else {
-    document.getElementById('collect-confirm').disabled = !collectPayment;
-  }
-}
-
-function updateSplitRemaining(){
-  const cash=parseFloat(document.getElementById('split-cash').value)||0;
-  const cbe=parseFloat(document.getElementById('split-cbe').value)||0;
-  const tb=parseFloat(document.getElementById('split-telebirr').value)||0;
-  const boa=parseFloat(document.getElementById('split-boa').value)||0;
-  const sum=cash+cbe+tb+boa;
-  const remaining=splitTotal-sum;
-  const el=document.getElementById('split-remaining');
-  if(remaining===0){
-    el.textContent=`✓ Fully covered — ${splitTotal} Birr`;
-    el.style.color='var(--accent2)';
-    document.getElementById('collect-confirm').disabled=false;
-  } else if(remaining>0){
-    el.textContent=`${remaining} Birr remaining`;
-    el.style.color='var(--amber)';
-    document.getElementById('collect-confirm').disabled=true;
-  } else {
-    el.textContent=`${Math.abs(remaining)} Birr over the total!`;
-    el.style.color='var(--danger)';
-    document.getElementById('collect-confirm').disabled=true;
-  }
-}
-
-document.getElementById('collect-cancel').onclick=()=>{document.getElementById('collect-modal').style.display='none';pendingCollectPS=null;};
-document.getElementById('collect-confirm').onclick=()=>{
-  document.getElementById('collect-modal').style.display='none';
-  if(pendingCollectPS!==null) collectAndReset(pendingCollectPS);
-  pendingCollectPS=null;
-};
-function collectAndReset(psId){
-  const ps=psState[psId-1];
-  const overSecs=ps.expiredAt?Math.floor((now()-ps.expiredAt)/1000):0;
-  const overFmt=overSecs>0?fmtUp(overSecs*1000):'00:00';
-  const sessionEndTs = ps.endTime || ps.expiredAt || now();
-
-  let paymentMethod, splitDetail='';
-  if(isSplitPayment){
-    const cash=parseFloat(document.getElementById('split-cash').value)||0;
-    const cbe=parseFloat(document.getElementById('split-cbe').value)||0;
-    const tb=parseFloat(document.getElementById('split-telebirr').value)||0;
-    const boa=parseFloat(document.getElementById('split-boa').value)||0;
-    const parts=[];
-    if(cash>0) parts.push(`Cash:${cash}`);
-    if(cbe>0) parts.push(`CBE:${cbe}`);
-    if(tb>0) parts.push(`TeleBirr:${tb}`);
-    if(boa>0) parts.push(`BOA:${boa}`);
-    paymentMethod='split';
-    splitDetail=parts.join(', ');
-  } else {
-    paymentMethod=collectPayment||'cash';
-  }
-
-  const visit={id:`v_${now()}_${psId}`,psId,date:todayStr(),
-    visitStart:ps.visitStart||now(),collectedAt:now(),
-    sessionEnd: sessionEndTs,
-    overtime:overFmt,
-    sessions:ps.visitSessions,amount:ps.visitSessions*PRICE,
-    paymentMethod, splitDetail};
-  visits.push(visit);saveVisits();
-  syncToSheets({psId:visit.psId,date:visit.date,
-    startTime:timeStr(visit.visitStart),
-    endTime:timeStr(visit.sessionEnd),
-    overtime:visit.overtime,
-    sessions:visit.sessions,
-    duration:Math.floor(SESSION_DURATION/60),
-    amount:visit.amount,
-    paymentMethod:visit.paymentMethod,
-    splitDetail:visit.splitDetail,
-    collectedAt:timeStr(visit.collectedAt)},'visit');
-  ps.status='idle';ps.startTime=null;ps.endTime=null;ps.visitSessions=0;ps.visitStart=null;ps.expiredAt=null;
-  renderShop();updateSyncUI();
-}
-
-// ── STOP EARLY
-function askStop(psId){pendingStopPS=psId;document.getElementById('stop-modal').style.display='flex';}
-document.getElementById('stop-cancel').onclick=()=>{document.getElementById('stop-modal').style.display='none';pendingStopPS=null;};
-document.getElementById('stop-confirm').onclick=()=>{
-  document.getElementById('stop-modal').style.display='none';
-  if(pendingStopPS!==null){psState[pendingStopPS-1].status='expired';renderShop();}
-  pendingStopPS=null;
-};
-
-// ── GAME SETTINGS
-function saveGameSettings(){
-  const mins=parseInt(document.getElementById('setting-duration').value)||7;
-  const price=parseInt(document.getElementById('setting-price').value)||20;
-  SESSION_DURATION=mins*60;
-  PRICE=price;
-  localStorage.setItem('ps_session_duration',SESSION_DURATION);
-  localStorage.setItem('ps_price',PRICE);
-  const msg=document.getElementById('settings-saved');
-  msg.style.display='block';
-  setTimeout(()=>msg.style.display='none',3000);
-}
-
-// ── MANAGE ITEMS
-function renderManageItems(){
-  const durInput=document.getElementById('setting-duration');
-  const priceInput=document.getElementById('setting-price');
-  if(durInput) durInput.value=Math.floor(SESSION_DURATION/60);
-  if(priceInput) priceInput.value=PRICE;
-  document.getElementById('manage-items-list').innerHTML=shopItems.map((item,i)=>`
-    <div class="item-manage-row">
-      <div class="item-manage-emoji">${item.emoji}</div>
-      <div class="item-manage-name">${item.name}</div>
-      <input class="item-price-input" type="number" value="${item.price}" onchange="updateItemPrice('${item.id}',this.value)" />
-      <span style="font-size:12px;color:var(--muted)">Birr</span>
-      <button class="item-del-btn" onclick="deleteItem('${item.id}')">Delete</button>
-    </div>`).join('');
-}
-function updateItemPrice(id,val){
-  const item=shopItems.find(i=>i.id===id);
-  if(item){item.price=parseInt(val)||0;saveItems();renderItems();}
-}
-function deleteItem(id){
-  const idx=shopItems.findIndex(i=>i.id===id);
-  if(idx>-1){shopItems.splice(idx,1);saveItems();renderManageItems();renderItems();}
-}
-function addItem(){
-  const emoji=document.getElementById('new-item-emoji').value.trim()||'📦';
-  const name=document.getElementById('new-item-name').value.trim();
-  const price=parseInt(document.getElementById('new-item-price').value)||0;
-  if(!name) return;
-  shopItems.push({id:`item_${now()}`,emoji,name,price});
-  saveItems();
-  document.getElementById('new-item-emoji').value='';
-  document.getElementById('new-item-name').value='';
-  document.getElementById('new-item-price').value='';
-  renderManageItems();renderItems();
-}
-
-// ── DASHBOARD RENDER
-let dashFilter='all', itemsFilter='all';
-function renderDashboard(){
-  const todayV=getTodayVisits(),allV=visits;
-  document.getElementById('dash-date').textContent=
-    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const todaySnack=itemSales.filter(s=>s.date===todayStr()).reduce((a,s)=>a+s.amount,0);
-  document.getElementById('metrics-grid').innerHTML=[
-    {label:'Today Customers',value:todayV.length,cls:'purple'},
-    {label:'Today PS Revenue',value:`${getTodayRevenue()} Birr`,cls:'green'},
-    {label:'Today Snack Revenue',value:`${todaySnack} Birr`,cls:'amber'},
-    {label:'Total Revenue',value:`${allV.reduce((s,v)=>s+v.amount,0)+itemSales.reduce((a,s)=>a+s.amount,0)} Birr`,cls:'green'},
-  ].map(m=>`<div class="metric-card"><div class="metric-label">${m.label}</div><div class="metric-value ${m.cls}">${m.value}</div></div>`).join('');
-
-  const methods=['cash','cbe','telebirr','boa'];
-  const icons={cash:'💵',cbe:'🏦',telebirr:'📱',boa:'🏧'};
-  document.getElementById('pay-breakdown').innerHTML=methods.map(m=>{
-    const v=todayV.filter(v=>v.paymentMethod===m);
-    const clr=m==='cash'?'#4ade80':m==='cbe'?'#60a5fa':m==='telebirr'?'var(--amber)':'var(--danger)';
-    return`<div class="pay-stat"><div class="pay-stat-label">${icons[m]} ${m.toUpperCase()}</div>
-      <div class="pay-stat-val" style="color:${clr}">${v.reduce((s,x)=>s+x.amount,0)} Birr</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${v.length} customer${v.length!==1?'s':''}</div></div>`;
-  }).join('');
-
-  const maxS=Math.max(1,...Array.from({length:NUM_PS},(_,i)=>allV.filter(v=>v.psId===i+1).reduce((s,v)=>s+v.sessions,0)));
-  document.getElementById('ps-bars').innerHTML=Array.from({length:NUM_PS},(_,i)=>{
-    const s=allV.filter(v=>v.psId===i+1).reduce((a,v)=>a+v.sessions,0);
-    return`<div class="ps-bar-row"><div class="ps-bar-label">PS ${i+1}</div>
-      <div class="ps-bar-track"><div class="ps-bar-fill" style="width:${(s/maxS)*100}%"></div></div>
-      <div class="ps-bar-val">${s*PRICE}B</div></div>`;
-  }).join('');
-
-  const dates=[...new Set(allV.map(v=>v.date))].sort().reverse().slice(0,7);
-  document.getElementById('filter-bar').innerHTML=
-    `<button class="filter-btn ${dashFilter==='all'?'active':''}" onclick="setFilter('all')">All</button>
-     <button class="filter-btn ${dashFilter==='today'?'active':''}" onclick="setFilter('today')">Today</button>`+
-    dates.map(d=>`<button class="filter-btn ${dashFilter===d?'active':''}" onclick="setFilter('${d}')">${d}</button>`).join('');
-
-  let filtered=dashFilter==='today'?todayV:dashFilter==='all'?allV:allV.filter(v=>v.date===dashFilter);
-  filtered=[...filtered].reverse();
-  const tbl=document.getElementById('sessions-table');
-  if(!filtered.length){tbl.innerHTML='<div class="empty-state">No visits yet.</div>';}
-  else{
-    tbl.innerHTML=`<div class="table-row header" style="grid-template-columns:50px 70px 70px 55px 60px 80px 80px">
-      <span>PS</span><span>Time</span><span>Date</span><span>Sess.</span><span>Mins</span><span>Amount</span><span>Payment</span></div>`+
-    filtered.map(v=>`<div class="table-row" style="grid-template-columns:50px 70px 70px 55px 60px 80px 80px">
-      <span><span class="ps-badge">${v.psId}</span></span>
-      <span style="color:var(--muted)">${timeStr(v.visitStart)}</span>
-      <span style="color:var(--muted)">${dateStr(v.visitStart)}</span>
-      <span style="color:var(--amber)">${v.sessions}</span>
-      <span style="color:var(--muted)">${v.sessions*7}m</span>
-      <span class="amount-cell">${v.amount}B</span>
-      <span><span class="pay-pill ${v.paymentMethod||'cash'}">${(v.paymentMethod||'cash').toUpperCase()}</span></span>
-    </div>`).join('');
-  }
-  updateSyncUI();
-}
-
-function setFilter(f){dashFilter=f;renderDashboard();}
-
-function renderItemsDash(){
-  const todaySales=itemSales.filter(s=>s.date===todayStr());
-  const allSales=itemSales;
-  const todayRev=todaySales.reduce((a,s)=>a+s.amount,0);
-  const topItem=shopItems.map(i=>({...i,total:allSales.filter(s=>s.itemId===i.id).reduce((a,s)=>a+s.qty,0)}))
-    .sort((a,b)=>b.total-a.total)[0];
-  document.getElementById('items-metrics').innerHTML=[
-    {label:'Today Sales',value:todaySales.length,cls:'purple'},
-    {label:'Today Revenue',value:`${todayRev} Birr`,cls:'green'},
-    {label:'Top Item',value:topItem?`${topItem.emoji} ${topItem.name}`:'—',cls:'amber'},
-    {label:'Total Snack Revenue',value:`${allSales.reduce((a,s)=>a+s.amount,0)} Birr`,cls:'green'},
-  ].map(m=>`<div class="metric-card"><div class="metric-label">${m.label}</div><div class="metric-value ${m.cls}" style="font-size:${m.label==='Top Item'?'18px':'28px'}">${m.value}</div></div>`).join('');
-
-  const dates2=[...new Set(allSales.map(s=>s.date))].sort().reverse().slice(0,7);
-  document.getElementById('items-filter-bar').innerHTML=
-    `<button class="filter-btn ${itemsFilter==='all'?'active':''}" onclick="setItemsFilter('all')">All</button>
-     <button class="filter-btn ${itemsFilter==='today'?'active':''}" onclick="setItemsFilter('today')">Today</button>`+
-    dates2.map(d=>`<button class="filter-btn ${itemsFilter===d?'active':''}" onclick="setItemsFilter('${d}')">${d}</button>`).join('');
-
-  let fs=itemsFilter==='today'?todaySales:itemsFilter==='all'?allSales:allSales.filter(s=>s.date===itemsFilter);
-  fs=[...fs].reverse();
-  const tbl=document.getElementById('items-table');
-  if(!fs.length){tbl.innerHTML='<div class="empty-state">No snack sales yet.</div>';}
-  else{
-    tbl.innerHTML=`<div class="table-row header" style="grid-template-columns:1fr 70px 60px 70px 80px">
-      <span>Item</span><span>Time</span><span>Qty</span><span>Amount</span><span>Payment</span></div>`+
-    fs.map(s=>`<div class="table-row" style="grid-template-columns:1fr 70px 60px 70px 80px">
-      <span style="font-weight:600">${shopItems.find(i=>i.id===s.itemId)?.emoji||'📦'} ${s.item}</span>
-      <span style="color:var(--muted)">${s.time}</span>
-      <span style="color:var(--amber)">×${s.qty}</span>
-      <span class="amount-cell">${s.amount}B</span>
-      <span><span class="pay-pill ${s.payment}">${s.payment.toUpperCase()}</span></span>
-    </div>`).join('');
-  }
-}
-function setItemsFilter(f){itemsFilter=f;renderItemsDash();}
-
-document.getElementById('export-btn').onclick=()=>{
-  const h1='Console,Date,StartTime,Sessions,Minutes,Amount(Birr),PaymentMethod\n';
-  const r1=visits.map(v=>`PS ${v.psId},${v.date},${timeStr(v.visitStart)},${v.sessions},${v.sessions*7},${v.amount},${v.paymentMethod||'cash'}`).join('\n');
-  const h2='\n\nItem,Date,Time,Qty,Amount,Payment\n';
-  const r2=itemSales.map(s=>`${s.item},${s.date},${s.time},${s.qty},${s.amount},${s.payment}`).join('\n');
-  const blob=new Blob([h1+r1+h2+r2],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`ps-house-${todayStr()}.csv`;a.click();
-  URL.revokeObjectURL(url);
-};
-document.getElementById('clear-btn').onclick=()=>{
-  if(confirm('Delete ALL data? This cannot be undone.')){
-    visits.length=0;itemSales.length=0;syncQueue=[];
-    saveVisits();saveSales();saveQueue();renderDashboard();
-  }
-};
-
-if(isOnline()&&syncQueue.length>0) flushQueue();
-updateSyncUI();
-
-// ── PWA: Register service worker for offline support
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  });
-}
-
-</script>
+<!-- App logic lives in app.js (loaded at end of body so the DOM is ready) -->
+<script src="app.js"></script>
 </body>
 </html>
