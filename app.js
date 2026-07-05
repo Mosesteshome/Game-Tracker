@@ -50,10 +50,13 @@ const DEFAULT_ITEMS = [
 ];
 let shopItems = load('ps_shop_items', DEFAULT_ITEMS);
 
-// Live state for each physical console (not persisted — resets on reload)
+// Live state for each physical console. Persisted to localStorage so an
+// in-progress customer (running timers + uncollected session count) survives
+// a page refresh / PWA reload instead of resetting to 0.
 const psState = Array.from({length:NUM_PS},(_,i)=>({
   id:i+1,status:'idle',startTime:null,endTime:null,visitSessions:0,visitStart:null,expiredAt:null
 }));
+restorePsState();   // rehydrate any live consoles saved before the reload
 
 /* ── 2. STORAGE + HELPERS ──────────────────────────────────────────────── */
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}
@@ -61,6 +64,30 @@ function saveVisits(){localStorage.setItem('ps_visits',JSON.stringify(visits));}
 function saveSales(){localStorage.setItem('ps_item_sales',JSON.stringify(itemSales));}
 function saveQueue(){localStorage.setItem('ps_sync_queue',JSON.stringify(syncQueue));}
 function saveItems(){localStorage.setItem('ps_shop_items',JSON.stringify(shopItems));}
+// Persist the live console state (status, timers, uncollected session count).
+function savePsState(){
+  localStorage.setItem('ps_live_state',JSON.stringify(psState.map(p=>({
+    status:p.status,startTime:p.startTime,endTime:p.endTime,
+    visitSessions:p.visitSessions,visitStart:p.visitStart,expiredAt:p.expiredAt
+  }))));
+}
+// Restore live console state on boot. A session whose time ran out while the
+// page was closed comes back as 'expired' (overtime counted from its end).
+function restorePsState(){
+  const saved=load('ps_live_state',null);
+  if(!Array.isArray(saved)) return;
+  saved.forEach((s,i)=>{
+    if(i>=psState.length||!s) return;
+    Object.assign(psState[i],{
+      status:s.status,startTime:s.startTime,endTime:s.endTime,
+      visitSessions:s.visitSessions,visitStart:s.visitStart,expiredAt:s.expiredAt
+    });
+    if(psState[i].status==='active'&&psState[i].endTime&&psState[i].endTime<=now()){
+      psState[i].status='expired';
+      if(!psState[i].expiredAt) psState[i].expiredAt=psState[i].endTime;
+    }
+  });
+}
 function now(){return Date.now();}
 function fmt(ms){const s=Math.max(0,Math.ceil(ms/1000));return`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
 function todayStr(){return new Date().toISOString().split('T')[0];}
@@ -422,6 +449,7 @@ function tickTimers(){
     if(remaining<=0){
       ps.status='expired';
       ps.expiredAt=now();
+      savePsState();
       timerEl.textContent='00:00';timerEl.className='ps-timer expired';
       barEl.style.width='0%';barEl.className='ps-progress-bar danger';
       const card=document.getElementById(`ps-card-${ps.id}`);
@@ -511,6 +539,7 @@ function startSession(psId){
   ps.status='active';ps.startTime=now();ps.endTime=now()+SESSION_DURATION*1000;
   ps.expiredAt=null;
   ps.visitSessions+=1;if(!ps.visitStart) ps.visitStart=ps.startTime;
+  savePsState();
   renderShop();
 }
 
@@ -621,6 +650,7 @@ function collectAndReset(psId){
     splitDetail:visit.splitDetail,
     collectedAt:timeStr(visit.collectedAt)},'visit');
   ps.status='idle';ps.startTime=null;ps.endTime=null;ps.visitSessions=0;ps.visitStart=null;ps.expiredAt=null;
+  savePsState();
   renderShop();updateSyncUI();
 }
 
@@ -629,7 +659,7 @@ function askStop(psId){pendingStopPS=psId;document.getElementById('stop-modal').
 document.getElementById('stop-cancel').onclick=()=>{document.getElementById('stop-modal').style.display='none';pendingStopPS=null;};
 document.getElementById('stop-confirm').onclick=()=>{
   document.getElementById('stop-modal').style.display='none';
-  if(pendingStopPS!==null){psState[pendingStopPS-1].status='expired';renderShop();}
+  if(pendingStopPS!==null){psState[pendingStopPS-1].status='expired';savePsState();renderShop();}
   pendingStopPS=null;
 };
 
@@ -912,7 +942,10 @@ document.getElementById('export-btn').onclick=()=>{
 document.getElementById('clear-btn').onclick=()=>{
   if(confirm('Delete all data stored ON THIS DEVICE? The Google Sheet is not affected. This cannot be undone.')){
     visits.length=0;itemSales.length=0;syncQueue=[];
-    saveVisits();saveSales();saveQueue();refreshDashboardData();
+    saveVisits();saveSales();saveQueue();
+    psState.forEach(p=>Object.assign(p,{status:'idle',startTime:null,endTime:null,visitSessions:0,visitStart:null,expiredAt:null}));
+    savePsState();
+    refreshDashboardData();
   }
 };
 

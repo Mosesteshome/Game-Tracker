@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ps-house-cache-v3';
+const CACHE_NAME = 'ps-house-cache-v4';
 const URLS_TO_CACHE = [
   './',
   './index.html',
