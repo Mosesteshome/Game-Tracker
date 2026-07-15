@@ -179,6 +179,29 @@ nav .nav-actions{display:flex;gap:8px;align-items:center;}
 .ps-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s;}
 .ps-bar-val{width:50px;text-align:right;font-weight:600;color:#4ade80;}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;}
+
+/* Daily collection bar charts */
+.chart-range{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:13px;color:var(--muted);}
+.chart-range label{display:flex;align-items:center;gap:6px;}
+.chart-range input[type=date]{background:var(--surface2);border:1px solid var(--border2);color:var(--text);
+  border-radius:var(--radius-sm);padding:6px 10px;font-size:13px;font-family:inherit;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text);}
+.chart-total{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;}
+.bar-chart{display:flex;align-items:flex-end;gap:10px;overflow-x:auto;padding-bottom:4px;}
+.bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:0 0 auto;min-width:42px;}
+.bar-val{font-size:11px;color:var(--muted);margin-bottom:4px;height:14px;font-variant-numeric:tabular-nums;}
+.bar-track{display:flex;align-items:flex-end;height:140px;}
+.bar-fill{width:26px;border-radius:4px 4px 0 0;transition:height .3s;}
+.bar-col:hover .bar-fill{filter:brightness(1.15);}
+.bar-date{font-size:11px;color:var(--muted);margin-top:6px;white-space:nowrap;}
+
+/* Customer visit-time dot plot */
+.dp-hint{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.dp-wrap{overflow-x:auto;}
+.dp-svg{display:block;max-width:none;}
+.dp-svg circle{cursor:pointer;transition:fill-opacity .15s,r .15s;}
+.dp-svg circle:hover{fill-opacity:1;}
 .sync-bar{margin-top:8px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);display:flex;align-items:center;justify-content:space-between;font-size:13px;}
 .sync-status{display:flex;align-items:center;gap:8px;}

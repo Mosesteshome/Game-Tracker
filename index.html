@@ -84,6 +84,7 @@
       <button class="dash-tab active" onclick="showTab('tab-ps')">🎮 PlayStation</button>
       <button class="dash-tab" onclick="showTab('tab-items')">🛒 Snacks</button>
       <button class="dash-tab" onclick="showTab('tab-manage')">📦 Manage Items</button>
+      <button class="dash-tab" onclick="showTab('tab-charts')">📈 Charts</button>
     </div>
 
     <!-- PS TAB -->
@@ -141,6 +142,21 @@
         </div>
       </div>
       <div style="font-size:12px;color:var(--muted);padding:4px">Price changes take effect immediately in the shop.</div>
+    </div>
+
+    <!-- CHARTS TAB -->
+    <div class="tab-panel" id="tab-charts">
+      <div class="section-title">Total Collected per Day</div>
+      <div class="chart-range">
+        <label>From <input type="date" id="chart-from" onchange="updateChartRange()"/></label>
+        <label>To <input type="date" id="chart-to" onchange="updateChartRange()"/></label>
+        <button class="nav-btn" onclick="resetChartRange()" style="font-size:12px;padding:5px 12px">Reset</button>
+      </div>
+      <div class="chart-card" id="ps-chart"></div>
+      <div class="chart-card" id="snack-chart"></div>
+
+      <div class="section-title">Customer Visit Times</div>
+      <div class="chart-card" id="heatmap"></div>
     </div>
 
     <div class="sync-bar">

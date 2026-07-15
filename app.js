@@ -273,10 +273,11 @@ function showTab(id){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.dash-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const idx={'tab-ps':0,'tab-items':1,'tab-manage':2}[id]??0;
+  const idx={'tab-ps':0,'tab-items':1,'tab-manage':2,'tab-charts':3}[id]??0;
   document.querySelectorAll('.dash-tab')[idx]?.classList.add('active');
   if(id==='tab-items') renderItemsDash();
   if(id==='tab-manage') renderManageItems();
+  if(id==='tab-charts') renderCollectionCharts();
 }
 
 /* ── 7. SETTINGS MODAL ─────────────────────────────────────────────────── */
@@ -789,6 +790,7 @@ async function refreshDashboardData(){
   }
   renderDashboard();
   if(document.getElementById('tab-items').classList.contains('active')) renderItemsDash();
+  if(document.getElementById('tab-charts').classList.contains('active')) renderCollectionCharts();
 }
 
 // ── Filter helpers (dashFilter drives the whole PS tab) ────────────────────
@@ -803,6 +805,27 @@ function scopeLabel(){
 function dateLabel(iso){
   const d=new Date(iso+'T00:00:00');
   return isNaN(d.getTime())?iso:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+}
+
+// Per-method totals across PS visits (incl. 'split' payments) and snack sales.
+// Returns {cash:{ps,snack}, cbe:{...}, telebirr:{...}, boa:{...}}.
+function paymentTotals(visitsList, salesList){
+  const t={cash:{ps:0,snack:0},cbe:{ps:0,snack:0},telebirr:{ps:0,snack:0},boa:{ps:0,snack:0}};
+  visitsList.forEach(v=>{
+    const m=(v.paymentMethod||'cash').toLowerCase();
+    if(m==='split'){
+      // splitDetail looks like "Cash:100, CBE:50, TeleBirr:20, BOA:10"
+      (v.splitDetail||'').split(',').forEach(part=>{
+        const [k,val]=part.split(':');
+        if(k&&val){const key=k.trim().toLowerCase();if(t[key])t[key].ps+=parseFloat(val)||0;}
+      });
+    } else if(t[m]){ t[m].ps+=v.amount; }
+  });
+  salesList.forEach(s=>{
+    const m=(s.payment||'cash').toLowerCase();
+    if(t[m]) t[m].snack+=s.amount;
+  });
+  return t;
 }
 
 function renderDashboard(){
@@ -833,12 +856,13 @@ function renderDashboard(){
   if(ptitle) ptitle.textContent=`Revenue by Payment (${scope})`;
   const methods=['cash','cbe','telebirr','boa'];
   const icons={cash:'💵',cbe:'🏦',telebirr:'📱',boa:'🏧'};
+  const payT=paymentTotals(fVisits,fSales);
   document.getElementById('pay-breakdown').innerHTML=methods.map(m=>{
-    const v=fVisits.filter(x=>x.paymentMethod===m);
     const clr=m==='cash'?'#4ade80':m==='cbe'?'#60a5fa':m==='telebirr'?'var(--amber)':'var(--danger)';
+    const t=payT[m], sum=t.ps+t.snack;
     return`<div class="pay-stat"><div class="pay-stat-label">${icons[m]} ${m.toUpperCase()}</div>
-      <div class="pay-stat-val" style="color:${clr}">${v.reduce((s,x)=>s+x.amount,0)} Birr</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${v.length} customer${v.length!==1?'s':''}</div></div>`;
+      <div class="pay-stat-val" style="color:${clr}">${sum} Birr</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">🎮 ${t.ps} · 🛒 ${t.snack} Birr</div></div>`;
   }).join('');
 
   // Sessions per console (filtered)
@@ -881,6 +905,134 @@ function renderDashboard(){
 }
 
 function setFilter(f){dashFilter=f;renderDashboard();}
+
+/* ── Daily collection bar charts (PS + Snacks), one shared date range ─────
+   Independent of the visit-log date filter above: these two charts always
+   read the full pulled dataset and are scoped only by chartFrom/chartTo. ── */
+let chartFrom='', chartTo='';
+
+function dailySum(list){
+  const m={};
+  list.forEach(x=>{ if(x.date) m[x.date]=(m[x.date]||0)+x.amount; });
+  return m;
+}
+// Add n days to an ISO date (UTC math so no timezone off-by-one).
+function addDays(iso,n){
+  const d=new Date(iso+'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate()+n);
+  return d.toISOString().split('T')[0];
+}
+function renderCollectionCharts(){
+  const psEl=document.getElementById('ps-chart'), snEl=document.getElementById('snack-chart');
+  if(!psEl||!snEl) return;
+  const allDates=[...new Set([...dashVisits,...dashSales].map(x=>x.date))].filter(Boolean).sort();
+  if(!allDates.length){
+    psEl.innerHTML='<div class="empty-state">No data yet.</div>'; snEl.innerHTML='';
+    const hm=document.getElementById('heatmap'); if(hm) hm.innerHTML='';
+    return;
+  }
+  const to=chartTo||allDates[allDates.length-1];
+  const from=chartFrom||addDays(to,-6);   // default: last 7 days (inclusive)
+  // keep the date pickers in sync with the range actually being shown
+  const fEl=document.getElementById('chart-from'), tEl=document.getElementById('chart-to');
+  if(fEl) fEl.value=from;
+  if(tEl) tEl.value=to;
+  const dates=allDates.filter(d=>d>=from&&d<=to).reverse();   // latest first
+  const psMap=dailySum(dashVisits.filter(v=>v.date>=from&&v.date<=to));
+  const snMap=dailySum(dashSales.filter(s=>s.date>=from&&s.date<=to));
+  psEl.innerHTML=barChart(dates,psMap,'var(--accent)','🎮 PS Collected');
+  snEl.innerHTML=barChart(dates,snMap,'var(--accent2)','🛒 Snacks Collected');
+  renderVisitTimes(from,to);
+}
+function barChart(dates,map,color,label){
+  if(!dates.length) return `<div class="chart-head"><span>${label}</span></div><div class="empty-state">No days in this range.</div>`;
+  const vals=dates.map(d=>map[d]||0);
+  const max=Math.max(1,...vals);
+  const total=vals.reduce((a,b)=>a+b,0);
+  const bars=dates.map(d=>{
+    const v=map[d]||0;
+    const h=v>0?Math.max(3,Math.round((v/max)*140)):0;   // 4px rounded end, anchored to baseline
+    return `<div class="bar-col" title="${dateLabel(d)}: ${v} Birr">
+      <div class="bar-val">${v>0?v:''}</div>
+      <div class="bar-track"><div class="bar-fill" style="height:${h}px;background:${color}"></div></div>
+      <div class="bar-date">${dateLabel(d)}</div></div>`;
+  }).join('');
+  return `<div class="chart-head"><span>${label}</span><span class="chart-total" style="color:${color}">${total} Birr</span></div>
+    <div class="bar-chart">${bars}</div>`;
+}
+function updateChartRange(){
+  chartFrom=document.getElementById('chart-from').value;
+  chartTo=document.getElementById('chart-to').value;
+  renderCollectionCharts();
+}
+function resetChartRange(){
+  chartFrom=''; chartTo='';
+  const fEl=document.getElementById('chart-from'), tEl=document.getElementById('chart-to');
+  if(fEl) fEl.value=''; if(tEl) tEl.value='';
+  renderCollectionCharts();
+}
+
+/* ── Customer visit-time heatmap (date × hour of day) ─────────────────────
+   Rows = dates (latest first), columns = hour of day, cell = how many
+   customers arrived in that hour. Colour intensity scales with the count. ── */
+function hourLabel(h){ const ap=h<12?'a':'p'; let hh=h%12; if(hh===0)hh=12; return hh+ap; }
+
+// Parse a time string to a fractional hour (e.g. "02:30 PM" -> 14.5).
+function timeVal(str){
+  const s=String(str||'').trim();
+  const t=s.match(/(\d{1,2}):(\d{2})/);
+  if(!t) return null;
+  let h=parseInt(t[1],10); const mi=parseInt(t[2],10)||0;
+  const ap=(s.match(/([AP])M/i)||[])[1];   // handle 12h "02:30 PM" and 24h "14:30"
+  if(ap){ const isPM=/P/i.test(ap); if(isPM&&h<12)h+=12; if(!isPM&&h===12)h=0; }
+  return (h>=0&&h<=23)?h+mi/60:null;
+}
+function fmtTV(tv){
+  let h=Math.floor(tv), m=Math.round((tv-h)*60);
+  if(m===60){m=0;h=(h+1)%24;}
+  const ap=h<12?'a':'p'; let hh=h%12; if(hh===0)hh=12;
+  return `${hh}:${String(m).padStart(2,'0')}${ap}`;
+}
+
+// Dot plot: one row per day (latest on top), one dot per customer at arrival time.
+function renderVisitTimes(from,to){
+  const el=document.getElementById('heatmap');
+  if(!el) return;
+  const byDate={}; let minH=24,maxH=0,any=false;
+  dashVisits.forEach(v=>{
+    if(!v.date||(from&&v.date<from)||(to&&v.date>to)) return;
+    const tv=timeVal(v.startTimeStr); if(tv==null) return;
+    any=true;
+    (byDate[v.date]=byDate[v.date]||[]).push(tv);
+    minH=Math.min(minH,Math.floor(tv)); maxH=Math.max(maxH,Math.ceil(tv));
+  });
+  if(!any){ el.innerHTML='<div class="empty-state">No customer time data in this range.</div>'; return; }
+
+  const dates=Object.keys(byDate).sort().reverse();          // latest first (top)
+  const h0=minH, h1=Math.max(maxH,minH+1), cols=h1-h0;
+  const leftPad=52, rightPad=30, topPad=20, botPad=10, rowH=24, hourW=54;
+  const W=leftPad+cols*hourW+rightPad, H=topPad+dates.length*rowH+botPad;
+  const X=t=>leftPad+(t-h0)*hourW;
+  const AX='#8888aa', DOT='#6c63ff', TXT='#f0f0f5';
+
+  let s=`<svg class="dp-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+  for(let h=h0;h<=h1;h++){                                    // hour gridlines + labels
+    const gx=X(h).toFixed(1);
+    s+=`<line x1="${gx}" y1="${topPad}" x2="${gx}" y2="${H-botPad}" stroke="rgba(255,255,255,.06)"/>`;
+    s+=`<text x="${gx}" y="${topPad-6}" fill="${AX}" font-size="10" text-anchor="middle">${hourLabel(h)}</text>`;
+  }
+  dates.forEach((d,i)=>{
+    const cy=topPad+i*rowH+rowH/2;
+    s+=`<text x="${leftPad-8}" y="${(cy+3.5).toFixed(1)}" fill="${AX}" font-size="11" text-anchor="end">${dateLabel(d)}</text>`;
+    byDate[d].forEach((tv,j)=>{
+      const jit=((j%5)-2)*3;                                 // nudge coincident dots apart
+      s+=`<circle cx="${X(tv).toFixed(1)}" cy="${(cy+jit).toFixed(1)}" r="5" fill="${DOT}" fill-opacity="0.72"><title>${dateLabel(d)} · ${fmtTV(tv)}</title></circle>`;
+    });
+    s+=`<text x="${W-6}" y="${(cy+3.5).toFixed(1)}" fill="${TXT}" font-size="11" font-weight="700" text-anchor="end">${byDate[d].length}</text>`;
+  });
+  s+=`</svg>`;
+  el.innerHTML=`<div class="dp-hint">Each dot = one customer, placed at the time they arrived · number at right = that day's total.</div><div class="dp-wrap">${s}</div>`;
+}
 
 function renderItemsDash(){
   const allSales=dashSales;
